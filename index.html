@@ -408,6 +408,11 @@
       justify-content: center;
       min-height: 100vh;
       padding: 1rem;
+      background: #0a0a1a;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      overflow: hidden;
     }
 
     .gameboy-container.active {
@@ -424,7 +429,9 @@
         0 20px 60px rgba(0,0,0,0.8),
         inset 0 2px 0 rgba(255,255,255,0.05);
       position: relative;
-      max-width: 100%;
+      max-width: 95vw;
+      max-height: 90vh;
+      transform: scale(1.2);
     }
 
     .gameboy-screen-frame {
@@ -627,108 +634,11 @@
       transform: rotate(-25deg) translateY(2px);
       box-shadow: none;
     }
-
-    .fullscreen-btn {
-      position: fixed;
-      top: 1rem;
-      right: 1rem;
-      background: #222;
-      border: 2px solid #444;
-      color: #fff;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 600;
-      z-index: 1000;
-      transition: all 0.2s;
-    }
-
-    .fullscreen-btn:hover {
-      background: #333;
-      border-color: var(--primary);
-    }
-
-    /* Touch controls for mobile */
-    .touch-controls {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      padding: 20px;
-      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-      z-index: 100;
-    }
-
-    @media (max-width: 800px) {
-      .touch-controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-      }
-      
-      .touch-dpad {
-        display: grid;
-        grid-template-columns: 50px 50px 50px;
-        grid-template-rows: 50px 50px;
-        gap: 5px;
-      }
-      
-      .touch-btn {
-        background: rgba(255,255,255,0.2);
-        border: 2px solid rgba(255,255,255,0.3);
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        color: #fff;
-        user-select: none;
-        -webkit-user-select: none;
-        touch-action: manipulation;
-      }
-      
-      .touch-btn:active {
-        background: rgba(245, 200, 66, 0.4);
-        border-color: var(--primary);
-      }
-      
-      .touch-btn.empty {
-        background: transparent;
-        border: none;
-      }
-      
-      .touch-action-btns {
-        display: flex;
-        gap: 15px;
-      }
-      
-      .touch-action-btn {
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        background: rgba(139, 34, 82, 0.6);
-        border: 3px solid rgba(255,255,255,0.3);
-        color: #fff;
-        font-size: 1.2rem;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
-      .touch-action-btn:active {
-        background: rgba(139, 34, 82, 0.9);
-        transform: scale(0.95);
-      }
-    }
   </style>
 </head>
 <body>
-  <button class="fullscreen-btn" onclick="toggleGameboy()">🎮 Gameboy Mode</button>
-  
-  <div class="bg-stars"></div>
+  <!-- Gameboy Fullscreen Mode -->
+  <div class="gameboy-container" id="gameboy-container">
   <div class="stars" id="stars"></div>
   
   <header>
@@ -749,6 +659,8 @@
     <div class="game-container">
       <div class="game-header">
         <div class="game-title">DOGINAL DASH</div>
+        <button class="cta-btn" onclick="toggleGameboy()" style="font-size:0.5rem;padding:0.5rem 1rem;">🎮 Launch</button>
+      </div>
         <div class="current-pfp" id="current-pfp">
           <span>Playing as:</span>
           <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect fill='%23333' width='40' height='40'/><text x='20' y='25' text-anchor='middle' fill='%23666' font-size='20'>🐕</text></svg>" alt="Current PFP" id="current-pfp-img">
@@ -844,25 +756,6 @@
     </div>
     
     <button class="fullscreen-btn" onclick="toggleGameboy()" style="position:relative; margin-top:1rem;">✕ Exit</button>
-  </div>
-  
-  <!-- Touch Controls for Mobile -->
-  <div class="touch-controls" id="touch-controls">
-    <div class="touch-dpad">
-      <div class="touch-btn empty"></div>
-      <div class="touch-btn" data-key="ArrowUp">▲</div>
-      <div class="touch-btn empty"></div>
-      <div class="touch-btn" data-key="ArrowLeft">◀</div>
-      <div class="touch-btn empty"></div>
-      <div class="touch-btn" data-key="ArrowRight">▶</div>
-      <div class="touch-btn empty"></div>
-      <div class="touch-btn" data-key="ArrowDown">▼</div>
-      <div class="touch-btn empty"></div>
-    </div>
-    <div class="touch-action-btns">
-      <div class="touch-action-btn" data-key="b">B</div>
-      <div class="touch-action-btn" data-key="a">A</div>
-    </div>
   </div>
   
   <!-- Upload Modal -->
