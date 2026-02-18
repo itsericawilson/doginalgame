@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🐕 Doginal Dash - Play as Your Doginal!</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap');
+    
+    :root {
+      --primary: #f5c842;
+      --primary-dark: #b8860b;
+      --bg-dark: #0a0a1a;
+      --bg-card: #12122a;
+      --accent: #4a9eff;
+      --success: #4ade80;
+      --error: #f87171;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-dark);
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    .bg-stars {
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(ellipse at 20% 80%, rgba(74, 158, 255, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(245, 200, 66, 0.1) 0%, transparent 50%),
+        var(--bg-dark);
+      z-index: -1;
+    }
+    
+    .stars {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+    }
+    
+    .star {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: #fff;
+      border-radius: 50%;
+      animation: twinkle 3s infinite;
+    }
+    
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    
+    header {
+      padding: 1.5rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(18, 18, 42, 0.8);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(245, 200, 66, 0.2);
+    }
+    
+    .logo {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1rem;
+      color: var(--primary);
+      text-shadow: 2px 2px 0 var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .logo span { font-size: 1.5rem; }
+    
+    nav {
+      display: flex;
+      gap: 2rem;
+    }
+    
+    nav a {
+      color: #aaa;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+    
+    nav a:hover { color: var(--primary); }
+    
+    .hero {
+      text-align: center;
+      padding: 4rem 2rem 2rem;
+    }
+    
+    .hero h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(1.5rem, 5vw, 2.5rem);
+      color: var(--primary);
+      text-shadow: 3px 3px 0 var(--primary-dark);
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+    
+    .hero p {
+      color: #aaa;
+      font-size: 1.1rem;
+      max-width: 500px;
+      margin: 0 auto 2rem;
+    }
+    
+    .cta-btn {
+      display: inline-block;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.8rem;
+      background: var(--primary);
+      color: #000;
+      padding: 1rem 2rem;
+      text-decoration: none;
+      clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0% calc(100% - 8px), 0% 8px);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    
+    .cta-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 30px rgba(245, 200, 66, 0.5);
+    }
+    
+    #game-section {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    
+    .game-container {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 1.5rem;
+      border: 2px solid var(--primary);
+      box-shadow: 0 0 40px rgba(245, 200, 66, 0.2);
+    }
+    
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .game-title {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.8rem;
+      color: var(--primary);
+    }
+    
+    .current-pfp {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: #888;
+    }
+    
+    .current-pfp img {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 2px solid var(--primary);
+    }
+    
+    #gameCanvas {
+      display: block;
+      border-radius: 8px;
+      max-width: 100%;
+    }
+    
+    .game-controls {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .control-btn {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .btn-upload {
+      background: var(--accent);
+      color: #fff;
+    }
+    
+    .btn-upload:hover { background: #3a8eef; }
+    
+    .btn-default {
+      background: #333;
+      color: #fff;
+    }
+    
+    .btn-default:hover { background: #444; }
+    
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      backdrop-filter: blur(5px);
+    }
+    
+    .modal-overlay.active { display: flex; }
+    
+    .modal {
+      background: var(--bg-card);
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 450px;
+      width: 90%;
+      border: 2px solid var(--primary);
+      position: relative;
+    }
+    
+    .modal h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.9rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    
+    .modal p {
+      color: #888;
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+      line-height: 1.6;
+    }
+    
+    .drop-zone {
+      border: 2px dashed #444;
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(245, 200, 66, 0.05);
+    }
+    
+    .drop-zone-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .drop-zone-text {
+      color: #aaa;
+      font-size: 0.9rem;
+    }
+    
+    .drop-zone-hint {
+      color: #555;
+      font-size: 0.8rem;
+      margin-top: 0.5rem;
+    }
+    
+    #pfp-input { display: none; }
+    
+    .validation-msg {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      display: none;
+    }
+    
+    .validation-msg.success {
+      display: block;
+      background: rgba(74, 222, 128, 0.1);
+      border: 1px solid var(--success);
+      color: var(--success);
+    }
+    
+    .validation-msg.error {
+      display: block;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+    }
+    
+    .validation-msg.warning {
+      display: block;
+      background: rgba(245, 200, 66, 0.1);
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: #000;
+      font-weight: 600;
+      padding: 0.75rem 2rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin-top: 1rem;
+      width: 100%;
+      transition: transform 0.1s;
+    }
+    
+    .btn-primary:hover { transform: scale(1.02); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .btn-secondary {
+      background: transparent;
+      color: #888;
+      border: 1px solid #444;
+      margin-top: 0.5rem;
+    }
+    
+    .instructions {
+      padding: 2rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    
+    .instructions h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.8rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    
+    .keys {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+    
+    .key {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .key-box {
+      background: #222;
+      border: 2px solid #444;
+      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6rem;
+      color: #fff;
+    }
+    
+    .key-label {
+      color: #666;
+      font-size: 0.8rem;
+    }
+    
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: #555;
+      font-size: 0.85rem;
+    }
+    
+    @media (max-width: 600px) {
+      header { padding: 1rem; }
+      .logo { font-size: 0.7rem; }
+      nav { gap: 1rem; }
+      .hero { padding: 2rem 1rem; }
+      .game-container { padding: 1rem; }
+      .keys { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-stars"></div>
+  <div class="stars" id="stars"></div>
+  
+  <header>
+    <div class="logo"><span>🐕</span> DOGINAL DASH</div>
+    <nav>
+      <a href="#game-section">Play</a>
+      <a href="#about">About</a>
+    </nav>
+  </header>
+  
+  <section class="hero">
+    <h1>PLAY AS YOUR<br>DOGINAL DOG! 🐕</h1>
+    <p>Upload your Doginal Dog PFP and become the character in this retro platformer adventure.</p>
+    <a href="#game-section" class="cta-btn">🎮 PLAY NOW</a>
+  </section>
+  
+  <section id="game-section">
+    <div class="game-container">
+      <div class="game-header">
+        <div class="game-title">DOGINAL DASH</div>
+        <div class="current-pfp" id="current-pfp">
+          <span>Playing as:</span>
+          <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect fill='%23333' width='40' height='40'/><text x='20' y='25' text-anchor='middle' fill='%23666' font-size='20'>🐕</text></svg>" alt="Current PFP" id="current-pfp-img">
+        </div>
+      </div>
+      
+      <div id="hud" style="display:flex;gap:40px;margin-bottom:8px;justify-content:center;font-family:'Press Start 2P',monospace;font-size:0.55rem;color:#f5c842;">
+        <span>SCORE: <span id="score-display">0</span></span>
+        <span>COINS: <span id="coin-display">0</span></span>
+        <span>LIVES: <span id="lives-display">3</span></span>
+      </div>
+      
+      <canvas id="gameCanvas" width="800" height="480"></canvas>
+      
+      <div class="game-controls">
+        <button class="control-btn btn-upload" onclick="openUploadModal()">
+          📁 Upload PFP
+        </button>
+        <button class="control-btn btn-default" onclick="startWithDefault()">
+          ▶ Play as Default
+        </button>
+      </div>
+    </div>
+  </section>
+  
+  <section class="instructions">
+    <h2>⌨️ CONTROLS</h2>
+    <div class="keys">
+      <div class="key">
+        <div class="key-box">← →</div>
+        <div class="key-label">Move</div>
+      </div>
+      <div class="key">
+        <div class="key-box">SPACE</div>
+        <div class="key-label">Jump</div>
+      </div>
+      <div class="key">
+        <div class="key-box">SPACE × 2</div>
+        <div class="key-label">Double Jump</div>
+      </div>
+    </div>
+  </section>
+  
+  <section id="about" class="instructions">
+    <h2>🐕 ABOUT DOGINAL</h2>
+    <p style="text-align: center; color: #888; line-height: 1.8;">
+      Doginal Dogs is a collection of unique, adorable dog-themed digital collectibles. 
+      Each dog has its own personality, traits, and style. Now you can bring your Doginal to life in-game!
+    </p>
+  </section>
+  
+  <footer>
+    <p>🐕 Doginal Dash • Built with ❤️ for the Doginal Community</p>
+  </footer>
+  
+  <!-- Upload Modal -->
+  <div class="modal-overlay" id="upload-modal">
+    <div class="modal">
+      <h2>🐕 UPLOAD YOUR PFP</h2>
+      <p>Upload your Doginal Dog PFP to play as your own character!</p>
+      
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-zone-icon">📁</div>
+        <div class="drop-zone-text">Click to choose or drag & drop</div>
+        <div class="drop-zone-hint">PNG, JPG, WEBP • Square recommended</div>
+      </div>
+      
+      <input type="file" id="pfp-input" accept="image/*">
+      
+      <div class="validation-msg" id="validation-msg"></div>
+      
+      <button class="btn-primary" id="use-pfp-btn" disabled onclick="applyPfp()">
+        Use This PFP
+      </button>
+      <button class="btn-primary btn-secondary" onclick="closeUploadModal()">
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Generate stars
+    const starsContainer = document.getElementById('stars');
+    for (let i = 0; i < 50; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.top = Math.random() * 100 + '%';
+      star.style.animationDelay = Math.random() * 3 + 's';
+      starsContainer.appendChild(star);
+    }
+  </script>
+  
+  <!-- GAME ENGINE -->
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    let playerImg = null;
+    let gameRunning = false;
+    let score = 0, coins = 0, lives = 3;
+    let keys = {};
+    let animFrame = 0;
+    let cameraX = 0;
+
+    const player = {
+      x: 100, y: 300, w: 48, h: 48,
+      vx: 0, vy: 0,
+      onGround: false,
+      jumpsLeft: 2,
+      facing: 1,
+      bobTime: 0,
+      dead: false,
+      invincible: 0,
+    };
+
+    const TILE = 48;
+
+    function makePlatforms() {
+      return [
+        ...Array.from({length: 40}, (_, i) => ({ x: i*TILE, y: H - TILE, w: TILE, h: TILE, type:'ground' })),
+        { x: 4*TILE, y: H - 3*TILE, w: 3*TILE, h: TILE, type:'platform' },
+        { x: 9*TILE, y: H - 4*TILE, w: 3*TILE, h: TILE, type:'platform' },
+        { x: 14*TILE, y: H - 3*TILE, w: 4*TILE, h: TILE, type:'platform' },
+        { x: 19*TILE, y: H - 5*TILE, w: 3*TILE, h: TILE, type:'platform' },
+        { x: 24*TILE, y: H - 3*TILE, w: 3*TILE, h: TILE, type:'platform' },
+        { x: 28*TILE, y: H - 4*TILE, w: 2*TILE, h: TILE, type:'platform' },
+        { x: 32*TILE, y: H - 6*TILE, w: 4*TILE, h: TILE, type:'platform' },
+        { x: 36*TILE, y: H - 3*TILE, w: 3*TILE, h: TILE, type:'platform' },
+      ].filter(p => {
+        if (p.type !== 'ground') return true;
+        const gx = p.x / TILE;
+        if (gx === 17 || gx === 18 || gx === 26 || gx === 27) return false;
+        return true;
+      });
+    }
+
+    function makeCoins(platforms) {
+      const cs = [];
+      platforms.filter(p => p.type === 'platform').forEach(p => {
+        for (let i = 0; i < Math.floor(p.w / TILE); i++) {
+          cs.push({ x: p.x + i*TILE + 12, y: p.y - 40, w: 24, h: 24, collected: false });
+        }
+      });
+      [3,6,8,11,13,20,22,30,34,38].forEach(ix => {
+        cs.push({ x: ix*TILE+12, y: H - TILE - 40, w: 24, h: 24, collected: false });
+      });
+      return cs;
+    }
+
+    let platforms = makePlatforms();
+    let coinList = makeCoins(platforms);
+
+    function drawTile(x, y, type, w) {
+      if (type === 'ground') {
+        ctx.fillStyle = '#5a3a1a';
+        ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = '#4caf50';
+        ctx.fillRect(x, y, TILE, 10);
+        ctx.fillStyle = '#388e3c';
+        ctx.fillRect(x, y+10, TILE, 3);
+        ctx.fillStyle = '#6d4c2a';
+        for(let dx=4; dx<TILE-4; dx+=8) {
+          ctx.fillRect(x+dx, y+18, 4, 4);
+        }
+      } else {
+        ctx.fillStyle = '#c8941a';
+        ctx.fillRect(x, y, w||TILE, TILE);
+        ctx.fillStyle = '#f5c842';
+        ctx.fillRect(x, y, w||TILE, 6);
+        ctx.fillStyle = '#9a6b0e';
+        ctx.fillRect(x, y+6, w||TILE, 4);
+        for(let dx=0; dx<(w||TILE); dx+=24) {
+          ctx.fillRect(x+dx, y, 2, TILE);
+        }
+      }
+    }
+
+    function drawBackground() {
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#1a1a4e');
+      grad.addColorStop(0.6, '#3a2060');
+      grad.addColorStop(1, '#1a0a2e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.fillStyle = '#ffffff44';
+      const starSeeds = [7,13,23,31,47,53,67,71,89,97,101,103,107,109,113];
+      starSeeds.forEach((s, i) => {
+        const sx = ((s * 97 + 200) % (W * 3) - cameraX * 0.3) % (W * 3);
+        const sy = (s * 37 + 50) % (H * 0.7);
+        ctx.fillRect(sx % W, sy, 2, 2);
+      });
+
+      ctx.fillStyle = '#fff8e0';
+      ctx.beginPath();
+      ctx.arc(700 - (cameraX * 0.1) % 700, 70, 32, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = '#f0d080';
+      ctx.beginPath();
+      ctx.arc(710 - (cameraX * 0.1) % 700, 62, 26, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    function drawDefaultDog(x, y, w, h, facing, bobOffset) {
+      const scale = w / 16;
+      const px = (col, row, color) => {
+        ctx.fillStyle = color;
+        ctx.fillRect(x + col * scale, y + row * scale + bobOffset, scale, scale);
+      };
+      const B = '#8B5E3C', D = '#5C3A1E', Wc = '#F5E6D0', N = '#1a0a00', T = '#e07050';
+      const _ = null;
+      const grid = [
+        [_,_,_,D,D,D,D,D,D,D,D,_,_,_,_,_],
+        [_,_,D,B,B,B,B,B,B,B,D,D,_,_,_,_],
+        [_,D,B,B,Wc,B,B,Wc,B,B,B,B,D,_,_,_],
+        [_,D,B,B,N,B,B,N,B,B,B,B,D,_,_,_],
+        [_,D,B,B,B,B,B,B,B,B,B,B,D,_,_,_],
+        [_,D,D,B,B,B,T,B,B,B,D,D,_,_,_,_],
+        [_,_,D,B,B,B,B,B,B,B,D,_,_,_,_,_],
+        [_,_,D,B,B,B,B,B,B,B,B,D,_,_,_,_],
+        [D,D,D,B,B,B,B,B,B,B,B,B,D,_,_,_],
+        [B,B,B,B,B,B,B,B,B,B,B,B,B,D,_,_],
+        [B,B,B,B,B,B,B,B,B,B,B,B,B,B,D,_],
+        [D,B,B,B,B,B,B,B,B,B,B,B,B,D,_,_],
+        [_,D,D,B,B,D,D,B,B,D,B,B,D,_,_,_],
+        [_,_,_,D,D,_,_,D,D,_,D,D,_,_,_,_],
+        [_,_,_,D,D,_,_,D,D,_,D,D,_,_,_,_],
+        [_,_,_,D,_,_,_,D,_,_,D,_,_,_,_,_],
+      ];
+      grid.forEach((row, ry) => row.forEach((c, cx2) => {
+        if (!c) return;
+        const drawX = facing > 0 ? cx2 : 15 - cx2;
+        px(drawX, ry, c);
+      }));
+    }
+
+    function drawCoin(x, y, w, h) {
+      const s = w / 8;
+      [1,2,3,4,5,6].forEach(row => {
+        [1,2,3,4,5,6].forEach(col => {
+          const dist = Math.sqrt((col-3.5)**2 + (row-3.5)**2);
+          if (dist < 3.2) {
+            const shade = (col + row) % 2 === 0 ? '#f5c842' : '#ffe888';
+            ctx.fillStyle = shade;
+            ctx.fillRect(x + col*s, y + row*s, s, s);
+          }
+        });
+      });
+      ctx.fillStyle = '#fffcc0';
+      ctx.fillRect(x + 2*s, y + 1*s, s, s);
+    }
+
+    function drawPlayer() {
+      if (player.dead) return;
+
+      const drawX = player.x - cameraX;
+      const bob = Math.sin(player.bobTime) * 1.5;
+
+      if (player.invincible > 0 && Math.floor(player.invincible / 4) % 2 === 0) return;
+
+      if (playerImg) {
+        ctx.save();
+        ctx.imageSmoothingEnabled = false;
+        if (player.facing < 0) {
+          ctx.translate(drawX + player.w, player.y + bob);
+          ctx.scale(-1, 1);
+          ctx.drawImage(playerImg, 0, 0, player.w, player.h);
+        } else {
+          ctx.drawImage(playerImg, drawX, player.y + bob, player.w, player.h);
+        }
+        ctx.restore();
+      } else {
+        drawDefaultDog(drawX, player.y, player.w, player.h, player.facing, bob);
+      }
+
+      if (!player.onGround) {
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(drawX + 6, H - TILE - 4, player.w - 12, 6);
+      }
+    }
+
+    const GRAVITY = 0.6;
+    const JUMP_FORCE = -13;
+    const SPEED = 4;
+    const WORLD_WIDTH = 40 * TILE;
+
+    function update() {
+      if (!gameRunning) return;
+
+      animFrame++;
+      if (keys['ArrowLeft'] || keys['a']) { player.vx = -SPEED; player.facing = -1; }
+      else if (keys['ArrowRight'] || keys['d']) { player.vx = SPEED; player.facing = 1; }
+      else player.vx *= 0.85;
+
+      player.vy += GRAVITY;
+      player.x += player.vx;
+      player.y += player.vy;
+
+      if (player.vx !== 0) player.bobTime += 0.2;
+
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.w > WORLD_WIDTH) player.x = WORLD_WIDTH - player.w;
+
+      player.onGround = false;
+      platforms.forEach(p => {
+        if (
+          player.x + player.w > p.x &&
+          player.x < p.x + p.w &&
+          player.y + player.h > p.y &&
+          player.y + player.h < p.y + TILE + 12 &&
+          player.vy >= 0
+        ) {
+          player.y = p.y - player.h;
+          player.vy = 0;
+          player.onGround = true;
+          player.jumpsLeft = 2;
+        }
+      });
+
+      if (player.y > H + 100) {
+        lives--;
+        document.getElementById('lives-display').textContent = lives;
+        if (lives <= 0) { gameOver(); return; }
+        player.x = 100; player.y = 200; player.vx = 0; player.vy = 0;
+        cameraX = 0;
+        player.invincible = 120;
+      }
+
+      coinList.forEach(c => {
+        if (c.collected) return;
+        if (
+          player.x + player.w > c.x && player.x < c.x + c.w &&
+          player.y + player.h > c.y && player.y < c.y + c.h
+        ) {
+          c.collected = true;
+          coins++;
+          score += 100;
+          document.getElementById('score-display').textContent = score;
+          document.getElementById('coin-display').textContent = coins;
+        }
+      });
+
+      const targetCam = player.x - W / 3;
+      cameraX += (targetCam - cameraX) * 0.12;
+      cameraX = Math.max(0, Math.min(WORLD_WIDTH - W, cameraX));
+
+      if (player.invincible > 0) player.invincible--;
+    }
+
+    function gameOver() {
+      gameRunning = false;
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#f00';
+      ctx.font = '1.2rem Press Start 2P, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', W/2, H/2 - 20);
+      ctx.fillStyle = '#fff';
+      ctx.font = '0.5rem Press Start 2P, monospace';
+      ctx.fillText('SCORE: ' + score, W/2, H/2 + 20);
+      ctx.fillText('PRESS R TO RESTART', W/2, H/2 + 50);
+    }
+
+    function resetGame() {
+      player.x = 100; player.y = 300; player.vx = 0; player.vy = 0;
+      player.onGround = false; player.jumpsLeft = 2; player.dead = false; player.invincible = 0;
+      score = 0; coins = 0; lives = 3;
+      cameraX = 0;
+      platforms = makePlatforms();
+      coinList = makeCoins(platforms);
+      document.getElementById('score-display').textContent = 0;
+      document.getElementById('coin-display').textContent = 0;
+      document.getElementById('lives-display').textContent = 3;
+      gameRunning = true;
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, W, H);
+      drawBackground();
+
+      ctx.save();
+      platforms.forEach(p => {
+        drawTile(p.x - cameraX, p.y, p.type, p.w);
+      });
+
+      coinList.forEach(c => {
+        if (!c.collected) {
+          const float = Math.sin(animFrame * 0.08 + c.x * 0.1) * 3;
+          drawCoin(c.x - cameraX, c.y + float, c.w, c.h);
+        }
+      });
+
+      drawPlayer();
+      ctx.restore();
+    }
+
+    function loop() {
+      update();
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      keys[e.key] = true;
+      if ((e.code === 'Space' || e.code === 'ArrowUp' || e.key === 'w') && player.jumpsLeft > 0 && gameRunning) {
+        player.vy = JUMP_FORCE + (player.jumpsLeft === 1 ? 1.5 : 0);
+        player.jumpsLeft--;
+        e.preventDefault();
+      }
+      if (e.key === 'r' || e.key === 'R') resetGame();
+    });
+    window.addEventListener('keyup', e => {
+      keys[e.code] = false;
+      keys[e.key] = false;
+    });
+
+    // ── PFP Validation ────────────────────────────────────────────────────────
+    let pendingPfp = null;
+    
+    const VALID_DIMENSIONS = [200, 256, 300, 400, 512, 600, 800, 1000, 1200];
+    const VALID_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
+    const TEST_PFP_HASH = '3772';
+    
+    function validateDoginalPfp(file, img) {
+      const errors = [];
+      const warnings = [];
+      
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!VALID_EXTENSIONS.includes(ext)) {
+        errors.push('Invalid file format. Use PNG, JPG, or WEBP.');
+      }
+      
+      if (img.width !== img.height) {
+        warnings.push('Image is not square. For best results, use a square PFP.');
+      }
+      
+      if (!VALID_DIMENSIONS.includes(img.width) && !VALID_DIMENSIONS.includes(img.height)) {
+        warnings.push('Non-standard dimension (' + img.width + 'x' + img.height + '). Works but may be resized.');
+      }
+      
+      // Check for test PFP
+      if (file.name.toLowerCase().includes(TEST_PFP_HASH)) {
+        return { valid: true, message: '✅ Test PFP accepted! Valid Doginal detected.', isTest: true };
+      }
+      
+      // Allow if no critical errors
+      if (errors.length > 0) {
+        return { valid: false, message: errors.join(' '), isTest: false };
+      }
+      
+      return { 
+        valid: true, 
+        message: warnings.length > 0 ? '⚠️ ' + warnings.join(' ') : '✅ PFP validated! Ready to play.', 
+        isTest: false 
+      };
+    }
+    
+    function openUploadModal() {
+      document.getElementById('upload-modal').classList.add('active');
+      document.getElementById('validation-msg').className = 'validation-msg';
+      document.getElementById('validation-msg').textContent = '';
+      document.getElementById('use-pfp-btn').disabled = true;
+      pendingPfp = null;
+    }
+    
+    function closeUploadModal() {
+      document.getElementById('upload-modal').classList.remove('active');
+      document.getElementById('pfp-input').value = '';
+    }
+    
+    // Drop zone
+    const dropZone = document.getElementById('drop-zone');
+    const pfpInput = document.getElementById('pfp-input');
+    
+    dropZone.addEventListener('click', () => pfpInput.click());
+    
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+    
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file) handlePfpFile(file);
+    });
+    
+    pfpInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) handlePfpFile(file);
+    });
+    
+    function handlePfpFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+          const result = validateDoginalPfp(file, img);
+          const msgEl = document.getElementById('validation-msg');
+          const btn = document.getElementById('use-pfp-btn');
+          
+          if (result.valid) {
+            msgEl.textContent = result.message;
+            msgEl.className = 'validation-msg ' + (result.isTest ? 'success' : (result.message.includes('⚠️') ? 'warning' : 'success'));
+            btn.disabled = false;
+            pendingPfp = { file, img, result };
+          } else {
+            msgEl.textContent = '❌ ' + result.message;
+            msgEl.className = 'validation-msg error';
+            btn.disabled = true;
+            pendingPfp = null;
+          }
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function applyPfp() {
+      if (!pendingPfp) return;
+      playerImg = pendingPfp.img;
+      document.getElementById('current-pfp-img').src = playerImg.src;
+      closeUploadModal();
+      resetGame();
+    }
+    
+    function startWithDefault() {
+      playerImg = null;
+      document.getElementById('current-pfp-img').src = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect fill='%23333' width='40' height='40'/><text x='20' y='25' text-anchor='middle' fill='%23666' font-size='20'>🐕</text></svg>";
+      resetGame();
+    }
+    
+    // Start render loop
+    loop();
+  </script>
+</body>
+</html>
