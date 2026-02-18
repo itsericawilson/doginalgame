@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>🐕 Doginal Dash</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap');
+    
+    :root {
+      --primary: #f5c842;
+      --primary-dark: #b8860b;
+      --bg-dark: #0a0a1a;
+    }
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    html, body {
+      overflow: hidden;
+      touch-action: none;
+      background: var(--bg-dark);
+    }
+    
+    /* Fullscreen Gameboy */
+    .gameboy-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #0a0a1a;
+      padding: 10px;
+    }
+
+    .gameboy {
+      background: linear-gradient(145deg, #1a1a2e 0%, #0f0f1a 100%);
+      border-radius: 15px 15px 40px 40px;
+      padding: 20px 30px 35px;
+      box-shadow: 
+        0 0 0 3px #2a2a4a,
+        0 0 0 6px #1a1a2e,
+        0 10px 40px rgba(0,0,0,0.8);
+      max-width: 95vw;
+      max-height: 95vh;
+    }
+
+    .gameboy-screen-frame {
+      background: #111;
+      border-radius: 8px 8px 20px 20px;
+      padding: 12px;
+    }
+
+    .gameboy-screen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .gameboy-brand {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.4rem;
+      color: #666;
+      letter-spacing: 2px;
+    }
+
+    .power-led {
+      width: 6px;
+      height: 6px;
+      background: #4ade80;
+      border-radius: 50%;
+      box-shadow: 0 0 6px #4ade80;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      max-width: 320px;
+      aspect-ratio: 5/3;
+      image-rendering: pixelated;
+      border-radius: 4px;
+    }
+
+    .gameboy-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 15px;
+      padding: 0 5px;
+    }
+
+    .dpad {
+      position: relative;
+      width: 70px;
+      height: 70px;
+    }
+
+    .dpad-btn {
+      position: absolute;
+      background: #222;
+      border: none;
+      cursor: pointer;
+    }
+
+    .dpad-up, .dpad-down {
+      width: 22px;
+      height: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .dpad-up { top: 0; border-radius: 4px 4px 0 0; }
+    .dpad-down { bottom: 0; border-radius: 0 0 4px 4px; }
+
+    .dpad-left, .dpad-right {
+      width: 24px;
+      height: 22px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .dpad-left { left: 0; border-radius: 4px 0 0 4px; }
+    .dpad-right { right: 0; border-radius: 0 4px 4px 0; }
+
+    .dpad-center {
+      width: 22px;
+      height: 22px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      background: #222;
+      border-radius: 2px;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 12px;
+      transform: rotate(-25deg);
+    }
+
+    .action-btn {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      border: none;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      cursor: pointer;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.5);
+    }
+
+    .btn-b, .btn-a {
+      background: #8b2252;
+      color: #fff;
+    }
+
+    .btn-b:active, .btn-a:active {
+      transform: translateY(3px);
+      box-shadow: none;
+    }
+
+    .start-select {
+      display: flex;
+      gap: 15px;
+      margin-top: 12px;
+      justify-content: center;
+    }
+
+    .small-btn {
+      background: #333;
+      border: none;
+      padding: 6px 15px;
+      border-radius: 8px;
+      color: #666;
+      font-size: 0.4rem;
+      font-family: 'Press Start 2P', monospace;
+      cursor: pointer;
+      transform: rotate(-25deg);
+      box-shadow: 0 2px 0 #111;
+    }
+
+    .small-btn:active {
+      transform: rotate(-25deg) translateY(2px);
+      box-shadow: none;
+    }
+
+    /* Upload Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: #12122a;
+      border-radius: 12px;
+      padding: 1.5rem;
+      max-width: 90vw;
+      width: 300px;
+      border: 2px solid var(--primary);
+    }
+
+    .modal h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.7rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .drop-zone {
+      border: 2px dashed #444;
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .drop-zone-text {
+      color: #aaa;
+      font-size: 0.85rem;
+    }
+
+    #pfp-input { display: none; }
+
+    .validation-msg {
+      margin-top: 1rem;
+      padding: 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      display: none;
+    }
+
+    .validation-msg.success {
+      display: block;
+      background: rgba(74, 222, 128, 0.1);
+      border: 1px solid #4ade80;
+      color: #4ade80;
+    }
+
+    .validation-msg.error {
+      display: block;
+      background: rgba(248, 113, 113, 0.1);
+      border: 1px solid #f87171;
+      color: #f87171;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #000;
+      font-weight: 600;
+      padding: 0.6rem 1.5rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+      width: 100%;
+    }
+
+    .btn-primary:disabled { opacity: 0.5; }
+    
+    .close-modal {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+    
+    .modal { position: relative; }
+  </style>
+</head>
+<body>
+  <div class="gameboy-container">
+    <div class="gameboy">
+      <div class="gameboy-screen-frame">
+        <div class="gameboy-screen-header">
+          <span class="gameboy-brand">DOGINAL</span>
+          <div class="power-led"></div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="480"></canvas>
+      </div>
+      
+      <div class="gameboy-controls">
+        <div class="dpad">
+          <button class="dpad-btn dpad-up" data-key="ArrowUp"></button>
+          <button class="dpad-btn dpad-down" data-key="ArrowDown"></button>
+          <button class="dpad-btn dpad-left" data-key="ArrowLeft"></button>
+          <button class="dpad-btn dpad-right" data-key="ArrowRight"></button>
+          <div class="dpad-center"></div>
+        </div>
+        
+        <div class="action-btns">
+          <button class="action-btn btn-b" data-key="b">B</button>
+          <button class="action-btn btn-a" data-key="a">A</button>
+        </div>
+      </div>
+      
+      <div class="start-select">
+        <button class="small-btn" data-key="Select">SELECT</button>
+        <button class="small-btn" onclick="resetGame()">START</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload Modal -->
+  <div class="modal-overlay" id="upload-modal">
+    <div class="modal">
+      <button class="close-modal" onclick="closeUploadModal()">×</button>
+      <h2>🐕 UPLOAD PFP</h2>
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-zone-text">Tap to choose image</div>
+      </div>
+      <input type="file" id="pfp-input" accept="image/*">
+      <div class="validation-msg" id="validation-msg"></div>
+      <button class="btn-primary" id="use-pfp-btn" disabled onclick="applyPfp()">PLAY</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    let playerImg = null;
+    let gameRunning = false;
+    let score = 0, coins = 0, lives = 3;
+    let keys = {};
+    let animFrame = 0;
+    let cameraX = 0;
+
+    const player = { x: 100, y: 300, w: 48, h: 48, vx: 0, vy: 0, onGround: false, jumpsLeft: 2, facing: 1, bobTime: 0, dead: false, invincible: 0 };
+    const TILE = 48;
+
+    function makePlatforms() {
+      return [
+        ...Array.from({length: 40}, (_, i) => ({ x: i*TILE, y: H - TILE, w: TILE, h: TILE, type:'ground' })),
+        { x: 4*TILE, y: H - 3*TILE, w: 3*TILE, h: TILE, type:'platform' },
+        { x: 9*TILE, y: H - 4*TILE, w: 3*TILE, h: TILE, type:'platform' },
+        { x: 14*TILE, y: H - 3*TILE, w: 4*TILE, h: TILE, type:'platform' },
+        { x: 19*TILE, y: H - 5*TILE, w: 3*TILE, h: TILE, type:'platform' },
+        { x: 24*TILE, y: H - 3*TILE, w: 3*TILE, h: TILE, type:'platform' },
+        { x: 28*TILE, y: H - 4*TILE, w: 2*TILE, h: TILE, type:'platform' },
+        { x: 32*TILE, y: H - 6*TILE, w: 4*TILE, h: TILE, type:'platform' },
+        { x: 36*TILE, y: H - 3*TILE, w: 3*TILE, h: TILE, type:'platform' },
+      ].filter(p => { if (p.type !== 'ground') return true; const gx = p.x / TILE; if (gx === 17 || gx === 18 || gx === 26 || gx === 27) return false; return true; });
+    }
+
+    function makeCoins(platforms) {
+      const cs = [];
+      platforms.filter(p => p.type === 'platform').forEach(p => { for (let i = 0; i < Math.floor(p.w / TILE); i++) cs.push({ x: p.x + i*TILE + 12, y: p.y - 40, w: 24, h: 24, collected: false }); });
+      [3,6,8,11,13,20,22,30,34,38].forEach(ix => cs.push({ x: ix*TILE+12, y: H - TILE - 40, w: 24, h: 24, collected: false }));
+      return cs;
+    }
+
+    let platforms = makePlatforms();
+    let coinList = makeCoins(platforms);
+
+    function drawTile(x, y, type, w) {
+      if (type === 'ground') {
+        ctx.fillStyle = '#5a3a1a';
+        ctx.fillRect(x, y, TILE, TILE);
+        ctx.fillStyle = '#4caf50';
+        ctx.fillRect(x, y, TILE, 10);
+        ctx.fillStyle = '#388e3c';
+        ctx.fillRect(x, y+10, TILE, 3);
+      } else {
+        ctx.fillStyle = '#c8941a';
+        ctx.fillRect(x, y, w||TILE, TILE);
+        ctx.fillStyle = '#f5c842';
+        ctx.fillRect(x, y, w||TILE, 6);
+      }
+    }
+
+    function drawBackground() {
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#1a1a4e');
+      grad.addColorStop(0.6, '#3a2060');
+      grad.addColorStop(1, '#1a0a2e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#ffffff44';
+      for (let i = 0; i < 30; i++) {
+        const sx = ((i * 73 + 200) % (W * 2) - cameraX * 0.3) % (W * 2);
+        const sy = (i * 37 + 50) % (H * 0.7);
+        ctx.fillRect(sx % W, sy, 2, 2);
+      }
+    }
+
+    function drawDefaultDog(x, y, w, h, facing, bobOffset) {
+      const scale = w / 16;
+      const px = (col, row, color) => { ctx.fillStyle = color; ctx.fillRect(x + col * scale, y + row * scale + bobOffset, scale, scale); };
+      const B = '#8B5E3C', D = '#5C3A1E', Wc = '#F5E6D0', N = '#1a0a00', T = '#e07050';
+      const _ = null;
+      const grid = [
+        [_,_,_,D,D,D,D,D,D,D,D,_,_,_,_,_],[_,_,D,B,B,B,B,B,B,B,D,D,_,_,_,_],[_,D,B,B,Wc,B,B,Wc,B,B,B,B,D,_,_,_],[_,D,B,B,N,B,B,N,B,B,B,B,D,_,_,_],[_,D,B,B,B,B,B,B,B,B,B,B,D,_,_,_],[_,D,D,B,B,B,T,B,B,B,D,D,_,_,_,_],[_,_,D,B,B,B,B,B,B,B,D,_,_,_,_,_],[_,_,D,B,B,B,B,B,B,B,B,D,_,_,_,_],[D,D,D,B,B,B,B,B,B,B,B,B,D,_,_,_],[B,B,B,B,B,B,B,B,B,B,B,B,B,D,_,_],[B,B,B,B,B,B,B,B,B,B,B,B,B,B,D,_],[D,B,B,B,B,B,B,B,B,B,B,B,B,D,_,_],[_,D,D,B,B,D,D,B,B,D,B,B,D,_,_,_],[_,_,_,D,D,_,_,D,D,_,D,D,_,_,_,_],[_,_,_,D,D,_,_,D,D,_,D,D,_,_,_,_],[_,_,_,D,_,_,_,D,_,_,D,_,_,_,_,_],
+      ];
+      grid.forEach((row, ry) => row.forEach((c, cx2) => { if (!c) return; const drawX = facing > 0 ? cx2 : 15 - cx2; px(drawX, ry, c); }));
+    }
+
+    function drawCoin(x, y, w, h) {
+      const s = w / 8;
+      for (let row = 1; row <= 6; row++) {
+        for (let col = 1; col <= 6; col++) {
+          const dist = Math.sqrt((col-3.5)**2 + (row-3.5)**2);
+          if (dist < 3.2) {
+            ctx.fillStyle = (col + row) % 2 === 0 ? '#f5c842' : '#ffe888';
+            ctx.fillRect(x + col*s, y + row*s, s, s);
+          }
+        }
+      }
+    }
+
+    function drawPlayer() {
+      if (player.dead) return;
+      const drawX = player.x - cameraX;
+      const bob = Math.sin(player.bobTime) * 1.5;
+      if (player.invincible > 0 && Math.floor(player.invincible / 4) % 2 === 0) return;
+      if (playerImg) {
+        ctx.save(); ctx.imageSmoothingEnabled = false;
+        if (player.facing < 0) { ctx.translate(drawX + player.w, player.y + bob); ctx.scale(-1, 1); ctx.drawImage(playerImg, 0, 0, player.w, player.h); }
+        else { ctx.drawImage(playerImg, drawX, player.y + bob, player.w, player.h); }
+        ctx.restore();
+      } else { drawDefaultDog(drawX, player.y, player.w, player.h, player.facing, bob); }
+      if (!player.onGround) { ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(drawX + 6, H - TILE - 4, player.w - 12, 6); }
+    }
+
+    const GRAVITY = 0.6, JUMP_FORCE = -13, SPEED = 4, WORLD_WIDTH = 40 * TILE;
+
+    function update() {
+      if (!gameRunning) return;
+      animFrame++;
+      if (keys['ArrowLeft'] || keys['a']) { player.vx = -SPEED; player.facing = -1; }
+      else if (keys['ArrowRight'] || keys['d']) { player.vx = SPEED; player.facing = 1; }
+      else player.vx *= 0.85;
+      player.vy += GRAVITY;
+      player.x += player.vx;
+      player.y += player.vy;
+      if (player.vx !== 0) player.bobTime += 0.2;
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.w > WORLD_WIDTH) player.x = WORLD_WIDTH - player.w;
+      player.onGround = false;
+      platforms.forEach(p => { if (player.x + player.w > p.x && player.x < p.x + p.w && player.y + player.h > p.y && player.y + player.h < p.y + TILE + 12 && player.vy >= 0) { player.y = p.y - player.h; player.vy = 0; player.onGround = true; player.jumpsLeft = 2; } });
+      if (player.y > H + 100) { lives--; if (lives <= 0) { gameOver(); return; } player.x = 100; player.y = 200; player.vx = 0; player.vy = 0; cameraX = 0; player.invincible = 120; }
+      coinList.forEach(c => { if (!c.collected && player.x + player.w > c.x && player.x < c.x + c.w && player.y + player.h > c.y && player.y < c.y + c.h) { c.collected = true; coins++; score += 100; } });
+      cameraX += (player.x - W / 3 - cameraX) * 0.12;
+      cameraX = Math.max(0, Math.min(WORLD_WIDTH - W, cameraX));
+      if (player.invincible > 0) player.invincible--;
+    }
+
+    function gameOver() {
+      gameRunning = false;
+      ctx.fillStyle = 'rgba(0,0,0,0.8)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#f00';
+      ctx.font = '1.2rem Press Start 2P, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('GAME OVER', W/2, H/2 - 20);
+      ctx.fillStyle = '#fff';
+      ctx.font = '0.5rem Press Start 2P, monospace';
+      ctx.fillText('SCORE: ' + score, W/2, H/2 + 20);
+      ctx.fillText('TAP START TO RESTART', W/2, H/2 + 50);
+    }
+
+    function resetGame() {
+      player.x = 100; player.y = 300; player.vx = 0; player.vy = 0;
+      player.onGround = false; player.jumpsLeft = 2; player.dead = false; player.invincible = 0;
+      score = 0; coins = 0; lives = 3;
+      cameraX = 0;
+      platforms = makePlatforms();
+      coinList = makeCoins(platforms);
+      gameRunning = true;
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, W, H);
+      drawBackground();
+      ctx.save();
+      platforms.forEach(p => drawTile(p.x - cameraX, p.y, p.type, p.w));
+      coinList.forEach(c => { if (!c.collected) { const float = Math.sin(animFrame * 0.08 + c.x * 0.1) * 3; drawCoin(c.x - cameraX, c.y + float, c.w, c.h); } });
+      drawPlayer();
+      ctx.restore();
+    }
+
+    function loop() { update(); render(); requestAnimationFrame(loop); }
+
+    window.addEventListener('keydown', e => {
+      keys[e.code] = true;
+      keys[e.key] = true;
+      if ((e.code === 'Space' || e.code === 'ArrowUp' || e.key === 'w') && player.jumpsLeft > 0 && gameRunning) { player.vy = JUMP_FORCE + (player.jumpsLeft === 1 ? 1.5 : 0); player.jumpsLeft--; e.preventDefault(); }
+    });
+    window.addEventListener('keyup', e => { keys[e.code] = false; keys[e.key] = false; });
+
+    // ── Button handlers ───────────────────────────────────────────────────────
+    document.querySelectorAll('[data-key]').forEach(btn => {
+      const key = btn.dataset.key;
+      const handle = (pressed) => {
+        if (key === 'a' || key === 'b') { if (pressed && player.jumpsLeft > 0 && gameRunning) { player.vy = JUMP_FORCE + (player.jumpsLeft === 1 ? 1.5 : 0); player.jumpsLeft--; } return; }
+        if (key === 'Select') { openUploadModal(); return; }
+        keys[key] = pressed;
+        if (key === 'ArrowLeft') keys['a'] = pressed;
+        if (key === 'ArrowRight') keys['d'] = pressed;
+      };
+      btn.addEventListener('touchstart', (e) => { e.preventDefault(); handle(true); });
+      btn.addEventListener('touchend', (e) => { e.preventDefault(); handle(false); });
+      btn.addEventListener('mousedown', () => handle(true));
+      btn.addEventListener('mouseup', () => handle(false));
+    });
+
+    // ── PFP Upload ──────────────────────────────────────────────────────────
+    let pendingPfp = null;
+    const TEST_PFP_HASH = '3772';
+    
+    function validateDoginalPfp(file, img) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!['png','jpg','jpeg','webp'].includes(ext)) return { valid: false, message: 'Use PNG, JPG, or WEBP' };
+      if (file.name.toLowerCase().includes(TEST_PFP_HASH)) return { valid: true, message: '✅ Test PFP!', isTest: true };
+      return { valid: true, message: '✅ Ready!', isTest: false };
+    }
+    
+    function openUploadModal() { document.getElementById('upload-modal').classList.add('active'); document.getElementById('validation-msg').className = 'validation-msg'; document.getElementById('validation-msg').textContent = ''; document.getElementById('use-pfp-btn').disabled = true; pendingPfp = null; }
+    function closeUploadModal() { document.getElementById('upload-modal').classList.remove('active'); document.getElementById('pfp-input').value = ''; }
+    
+    const dropZone = document.getElementById('drop-zone');
+    const pfpInput = document.getElementById('pfp-input');
+    dropZone.addEventListener('click', () => pfpInput.click());
+    pfpInput.addEventListener('change', e => { const file = e.target.files[0]; if (file) handlePfpFile(file); });
+    
+    function handlePfpFile(file) {
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        const img = new Image();
+        img.onload = function() {
+          const result = validateDoginalPfp(file, img);
+          const msgEl = document.getElementById('validation-msg');
+          const btn = document.getElementById('use-pfp-btn');
+          if (result.valid) { msgEl.textContent = result.message; msgEl.className = 'validation-msg success'; btn.disabled = false; pendingPfp = { file, img, result }; }
+          else { msgEl.textContent = '❌ ' + result.message; msgEl.className = 'validation-msg error'; btn.disabled = true; pendingPfp = null; }
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+    
+    function applyPfp() {
+      if (!pendingPfp) return;
+      playerImg = pendingPfp.img;
+      closeUploadModal();
+      resetGame();
+    }
+
+    // Auto-start with default
+    resetGame();
+    loop();
+  </script>
+</body>
+</html>
