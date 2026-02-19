@@ -2,29 +2,28 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🐕 Doginal Dash</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { overflow: hidden; background: #0a0a1a; }
+    html, body { overflow: hidden; background: #0f0f1a; }
     body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
     canvas { display: block; }
-    #mobile-controls { display: none; position: fixed; bottom: 15px; left: 0; right: 0; padding: 0 15px; justify-content: space-between; z-index: 100; }
+    #mobile-controls { display: none; position: fixed; bottom: 20px; left: 0; right: 0; padding: 0 20px; justify-content: space-between; z-index: 100; }
     @media (pointer: coarse) { #mobile-controls { display: flex; } }
-    .dpad { display: flex; gap: 8px; }
-    .dpad button { width: 65px; height: 65px; border-radius: 12px; background: rgba(30,30,50,0.95); border: 2px solid rgba(255,255,255,0.4); color: #fff; font-size: 22px; }
-    .dpad button:active { background: rgba(60,60,100,0.95); transform: scale(0.95); }
-    .action-btns { display: flex; gap: 12px; }
-    .action-btns button { width: 75px; height: 75px; border-radius: 50%; border: none; font-family: 'Press Start 2P', monospace; font-size: 14px; box-shadow: 0 5px 0 rgba(0,0,0,0.6); }
-    .btn-b { background: #6b21a8; color: #fff; }
+    .dpad { display: flex; gap: 10px; }
+    .dpad button { width: 70px; height: 70px; border-radius: 15px; background: rgba(20,20,40,0.95); border: 3px solid rgba(255,255,255,0.5); color: #fff; font-size: 24px; }
+    .dpad button:active { background: rgba(60,60,120,0.95); transform: scale(0.95); }
+    .action-btns { display: flex; gap: 15px; }
+    .action-btns button { width: 80px; height: 80px; border-radius: 50%; border: none; font-family: 'Press Start 2P', monospace; font-size: 14px; box-shadow: 0 6px 0 rgba(0,0,0,0.7); }
+    .btn-b { background: #7c3aed; color: #fff; }
     .btn-a { background: #f59e0b; color: #000; }
-    .action-btns button:active { transform: translateY(5px); box-shadow: none; }
-    #powerup-bar { display: none; position: fixed; right: 15px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 10px; z-index: 100; }
-    @media (pointer: coarse) { #powerup-bar { display: flex; } }
-    .powerup-slot { width: 55px; height: 55px; border-radius: 10px; background: rgba(30,30,50,0.9); border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-    .powerup-slot.active { border-color: #f59e0b; box-shadow: 0 0 15px rgba(245,158,11,0.5); }
-    .powerup-slot .time { position: absolute; font-size: 9px; color: #fff; bottom: 2px; }
+    .action-btns button:active { transform: translateY(6px); box-shadow: none; }
+    #powerups { display: none; position: fixed; right: 20px; top: 50%; transform: translateY(-50%); flex-direction: column; gap: 15px; z-index: 100; }
+    @media (pointer: coarse) { #powerups { display: flex; } }
+    .pup { width: 60px; height: 60px; border-radius: 12px; background: rgba(20,20,40,0.9); border: 3px solid #333; display: flex; align-items: center; justify-content: center; font-size: 28px; opacity: 0.4; }
+    .pup.active { opacity: 1; border-color: #f59e0b; box-shadow: 0 0 20px rgba(245,158,11,0.6); }
   </style>
 </head>
 <body>
@@ -38,9 +37,9 @@
       <button class="btn-a" id="btn-a">A</button>
     </div>
   </div>
-  <div id="powerup-bar">
-    <div class="powerup-slot" id="slot-jetpack">🎒</div>
-    <div class="powerup-slot" id="slot-magnet">🧲</div>
+  <div id="powerups">
+    <div class="pup" id="pup-jetpack">🎒</div>
+    <div class="pup" id="pup-magnet">🧲</div>
   </div>
 
 <script type="module">
@@ -49,236 +48,169 @@ import kaboom from "https://unpkg.com/kaboom@3000.0.1/dist/kaboom.mjs";
 const k = kaboom({
   canvas: document.createElement("canvas"),
   width: 1000,
-  height: 600,
-  background: [20, 15, 35],
+  height: 650,
+  background: [15, 10, 25],
   crisp: true,
 });
-
 document.body.appendChild(k.canvas);
 
-// Game state
-let score = 0;
-let bones = 0;
-let lives = 3;
-let gameTime = 0;
-let combo = 0;
-let comboTimer = 0;
+// ============ GAME STATE ============
+let score = 0, bones = 0, lives = 3, gameTime = 0;
+let combo = 0, comboTimer = 0;
 let highScore = parseInt(localStorage.getItem('doginalHighScore')) || 0;
-let gameState = "title";
-let currentLevel = 1;
-let levelCompleteShown = false;
+let gameState = "title", currentLevel = 1, levelCompleteShown = false;
+let hasJetpack = false, hasMagnet = false;
+let jetpackActive = false, magnetActive = false;
+let jetpackFuel = 0, powerupTimer = 0;
 
-// Active power-ups (tap to activate)
-let hasJetpack = false;
-let hasMagnet = false;
-let jetpackActive = false;
-let magnetActive = false;
-let jetpackFuel = 0;
-let powerupTimer = 0;
+const TILE = 50, LEVEL_DURATION = 45;
 
-// Constants
-const TILE = 50;
-const LEVEL_DURATION = 45;
-
-// Themes
+// ============ THEMES ============
 const themes = {
-  forest: { sky: [34, 85, 34], ground: [101, 67, 33], platform: [139, 90, 43], accent: [255, 215, 0] },
-  desert: { sky: [255, 200, 100], ground: [194, 178, 128], platform: [180, 140, 80], accent: [255, 100, 0] },
-  ice: { sky: [150, 200, 255], ground: [180, 220, 240], platform: [100, 180, 220], accent: [0, 150, 255] },
-  night: { sky: [10, 10, 30], ground: [40, 30, 60], platform: [80, 60, 120], accent: [200, 100, 255] }
+  forest: { sky: [30, 80, 30], ground: [80, 50, 20], platform: [120, 80, 40] },
+  desert: { sky: [255, 180, 80], ground: [160, 120, 60], platform: [180, 130, 60] },
+  ice: { sky: [100, 180, 255], ground: [150, 200, 220], platform: [80, 150, 200] },
+  night: { sky: [15, 10, 35], ground: [50, 40, 70], platform: [70, 50, 100] }
 };
-
 let currentTheme = "forest";
 
-// Difficulty - MUCH harder
+// ============ DIFFICULTY - MUCH HARDER ============
 function getDifficulty(level) {
-  if (level === 1) return { name: "WARMUP", gapMin: 2, gapMax: 3, platformWidth: 2.5, enemyDensity: 0, coinGap: 40 };
-  if (level === 2) return { name: "GETTING THERE", gapMin: 2, gapMax: 4, platformWidth: 2, enemyDensity: 0.15, coinGap: 50 };
-  if (level === 3) return { name: "SERIOUS", gapMin: 3, gapMax: 5, platformWidth: 1.8, enemyDensity: 0.25, coinGap: 60 };
-  if (level === 4) return { name: "COMMITTED", gapMin: 3, gapMax: 5, platformWidth: 1.5, enemyDensity: 0.3, coinGap: 70 };
-  if (level === 5) return { name: "STRESSED", gapMin: 4, gapMax: 6, platformWidth: 1.3, enemyDensity: 0.35, coinGap: 80 };
-  if (level === 6) return { name: "HARD", gapMin: 4, gapMax: 7, platformWidth: 1.1, enemyDensity: 0.4, coinGap: 90 };
-  if (level === 7) return { name: "EXTREME", gapMin: 5, gapMax: 8, platformWidth: 0.9, enemyDensity: 0.45, coinGap: 100 };
-  return { name: "BRUTAL", gapMin: 5, gapMax: 9, platformWidth: 0.7, enemyDensity: 0.5, coinGap: 120 };
+  // Big gaps, narrow platforms, lots of enemies
+  if (level === 1) return { name: "WARMUP", gapMin: 4, gapMax: 6, platW: 3, enemy: 0.1 };
+  if (level === 2) return { name: "GETTING REAL", gapMin: 5, gapMax: 8, platW: 2.5, enemy: 0.2 };
+  if (level === 3) return { name: "SERIOUS", gapMin: 6, gapMax: 10, platW: 2, enemy: 0.25 };
+  if (level === 4) return { name: "COMMITTED", gapMin: 7, gapMax: 11, platW: 1.8, enemy: 0.3 };
+  if (level === 5) return { name: "STRESSED", gapMin: 8, gapMax: 12, platW: 1.5, enemy: 0.35 };
+  if (level === 6) return { name: "HARD", gapMin: 9, gapMax: 14, platW: 1.3, enemy: 0.4 };
+  if (level === 7) return { name: "EXTREME", gapMin: 10, gapMax: 16, platW: 1, enemy: 0.45 };
+  return { name: "BRUTAL", gapMin: 11, gapMax: 18, platW: 0.8, enemy: 0.5 };
 }
 
-// Player sprite - draw pixel dog
-function drawDog(p) {
-  const scale = p.width / 16;
-  const colors = {
-    body: [139, 94, 60],
-    dark: [92, 58, 30],
-    light: [245, 230, 208],
-    nose: [30, 20, 10],
-    tongue: [224, 112, 80]
-  };
-  
-  // Body
-  drawRect({ pos: p.pos.add(2*scale, 4*scale), width: 12*scale, height: 8*scale, color: colors.body });
-  // Head
-  drawRect({ pos: p.pos.add(10*scale, 2*scale), width: 6*scale, height: 6*scale, color: colors.body });
-  // Snout
-  drawRect({ pos: p.pos.add(14*scale, 4*scale), width: 3*scale, height: 3*scale, color: colors.light });
-  // Nose
-  drawRect({ pos: p.pos.add(16*scale, 4*scale), width: 1*scale, height: 1*scale, color: colors.nose });
-  // Eye
-  drawRect({ pos: p.pos.add(13*scale, 3*scale), width: 1*scale, height: 1*scale, color: colors.nose });
-  // Ear
-  drawRect({ pos: p.pos.add(11*scale, 1*scale), width: 2*scale, height: 2*scale, color: colors.dark });
-  // Legs
-  drawRect({ pos: p.pos.add(3*scale, 12*scale), width: 2*scale, height: 4*scale, color: colors.dark });
-  drawRect({ pos: p.pos.add(11*scale, 12*scale), width: 2*scale, height: 4*scale, color: colors.dark });
-  // Tail
-  drawRect({ pos: p.pos, width: 3*scale, height: 2*scale, color: colors.dark });
+// ============ DRAW PIXEL DOG ============
+function drawDog(x, y, w, h, flip) {
+  const s = w / 16;
+  const colors = { B: [139,94,60], D: [92,58,30], L: [245,230,208], N: [30,20,10], T: [224,112,80] };
+  const draw = (cx, cy, c) => c && drawRect({ pos: vec2(x + cx*s, y + cy*s), width: s, height: s, color: colors[c] });
+  const grid = [
+    [0,0,0,"D","D","D","D","D","D","D",0,0,0,0,0,0],["D","D",0,"B","B","B","B","B","B","B","D","D",0,0,0,0],["D","B","B","B","L","B","B","L","B","B","B","B","D",0,0,0],["D","B","B","N","B","B","N","B","B","B","B","B","D",0,0,0],["D","B","B","B","B","B","B","B","B","B","B","B","D",0,0,0],["D","D","B","B","B","T","B","B","B","B","D","D",0,0,0,0],[0,"D","B","B","B","B","B","B","B","B","D",0,0,0,0,0],[0,"D","B","B","B","B","B","B","B","B","B","D",0,0,0,0],["D","D","D","B","B","B","B","B","B","B","B","B","D",0,0],["B","B","B","B","B","B","B","B","B","B","B","B","B","D",0],["B","B","B","B","B","B","B","B","B","B","B","B","B","B","D"],["D","B","B","B","B","B","B","B","B","B","B","B","B","D",0],[0,"D","D","B","B","D","D","B","B","D","B","B","D",0,0,0],[0,0,0,"D","D",0,0,"D","D",0,"D","D",0,0,0,0],[0,0,0,"D","D",0,0,"D","D",0,"D","D",0,0,0,0],[0,0,0,"D",0,0,0,"D",0,0,"D",0,0,0,0,0]
+  ];
+  grid.forEach((row, ry) => row.forEach((c, cx) => {
+    const dx = flip ? 15 - cx : cx;
+    draw(dx, ry, c);
+  }));
 }
 
-// Custom player rendering
+// ============ PLAYER ============
 let player = null;
-let playerImage = null;
+let playerImg = null;
 
 function spawnPlayer() {
-  if (player) destroy(player);
-  
   player = add([
     rect(48, 48),
     area({ shape: new Rect(vec2(0, 0), 40, 44) }),
     body(),
-    pos(80, 400),
+    pos(60, 450),
     "player",
-    {
-      speed: 280,
-      jumpForce: 520,
-      jumpsLeft: 2,
-      invincible: 0,
-      vx: 0,
-    }
+    { speed: 300, jumpForce: 580, jumpsLeft: 2, invincible: 0 }
   ]);
-  player.pos = vec2(80, 400);
-  player.jumpsLeft = 2;
-  player.invincible = 0;
 }
 
+// ============ LEVEL GENERATION ============
+let worldWidth = 0;
+
 function generateLevel() {
-  destroyAll("platform");
-  destroyAll("coin");
-  destroyAll("mystery");
-  destroyAll("enemy");
+  destroyAll("platform", "coin", "mystery", "enemy", "moving");
   
   const diff = getDifficulty(currentLevel);
-  const worldLength = 60 + currentLevel * 25;
+  const worldLen = 50 + currentLevel * 20;
   
   let lastX = 0;
   let currentY = height() - TILE;
   
-  // Starting platform (safe)
-  add([
-    rect(250, TILE),
-    area(),
-    pos(0, currentY),
-    color(themes[currentTheme].ground),
-    "platform",
-    "ground",
-  ]);
-  lastX = 250;
+  // Safe start
+  add([ rect(200, TILE), area(), pos(0, currentY), color(themes[currentTheme].ground), "platform", "ground" ]);
+  lastX = 200;
   
-  for (let i = 0; i < worldLength; i++) {
-    // GAP - make them meaningful
-    const gapSize = diff.gapMin + Math.floor(Math.random() * (diff.gapMax - diff.gapMin + 1));
-    const gapPixels = gapSize * TILE;
-    lastX += gapPixels;
+  for (let i = 0; i < worldLen; i++) {
+    // HUGE gaps - 4-18 tiles!
+    const gapTiles = diff.gapMin + Math.floor(Math.random() * (diff.gapMax - diff.gapMin + 1));
+    const gap = gapTiles * TILE;
+    lastX += gap;
     
-    // Platform
-    const platWidth = Math.max(TILE * 1.2, diff.platformWidth * TILE);
-    const heightChange = (Math.random() - 0.45) * TILE * 2.5; // More vertical variation
-    currentY = Math.max(80, Math.min(height() - TILE - 50, currentY + heightChange));
+    // Narrow platforms
+    const platW = Math.max(TILE, diff.platW * TILE);
     
-    add([
-      rect(platWidth, TILE),
+    // Height varies A LOT
+    currentY = Math.max(100, Math.min(height() - TILE - 80, currentY + (Math.random() - 0.4) * TILE * 3));
+    
+    // Moving platforms (30% chance after level 2)
+    let isMoving = false, moveAxis = "x", moveSpeed = 100, moveRange = 100;
+    if (currentLevel >= 2 && Math.random() < 0.3) {
+      isMoving = true;
+      if (currentLevel >= 4) {
+        moveAxis = Math.random() < 0.4 ? "y" : "x";
+        moveSpeed = 120 + currentLevel * 20;
+        moveRange = 100 + currentLevel * 15;
+      } else {
+        moveSpeed = 80;
+        moveRange = 80;
+      }
+    }
+    
+    const plat = add([
+      rect(platW, TILE),
       area(),
       pos(lastX, currentY),
       color(themes[currentTheme].platform),
       "platform",
-      { width: platWidth },
+      { 
+        width: platW, isMoving, moveAxis, moveSpeed, moveRange, 
+        origX: lastX, origY: currentY, moveDir: 1, standTime: 0 
+      }
     ]);
     
-    // Coins - spaced out, need to work for them
-    if (Math.random() < 0.5) {
-      const coinCount = 1 + Math.floor(Math.random() * 2);
-      for (let c = 0; c < coinCount; c++) {
-        add([
-          circle(8),
-          area(),
-          pos(lastX + platWidth/2 + (c - coinCount/2) * diff.coinGap, currentY - 35 - Math.random() * 20),
-          color(255, 215, 0),
-          "coin",
-          { collected: false },
-        ]);
-      }
-    }
-    
-    // Mystery boxes (power-ups)
-    if (Math.random() < 0.06) {
+    // Enemies
+    if (diff.enemy > 0 && Math.random() < diff.enemy && platW > 70) {
       add([
-        rect(30, 30),
-        area(),
-        pos(lastX + platWidth/2 - 15, currentY - TILE - 30),
-        color(200, 150, 50),
-        "mystery",
-        { opened: false },
-      ]);
-    }
-    
-    // Enemies (goombas)
-    if (diff.enemyDensity > 0 && Math.random() < diff.enemyDensity && platWidth > 80) {
-      add([
-        rect(24, 20),
-        area({ shape: new Rect(vec2(0, 0), 24, 20) }),
-        pos(lastX + platWidth/2 - 12, currentY - 24),
-        color(150, 75, 30),
+        rect(28, 24),
+        area({ shape: new Rect(vec2(0, 0), 28, 24) }),
+        pos(lastX + platW/2 - 14, currentY - 28),
+        color(160, 60, 20),
         "enemy",
-        {
-          startX: lastX + platWidth/2 - 12,
-          range: platWidth/2 - 15,
-          direction: Math.random() < 0.5 ? 1 : -1,
-          speed: 60 + currentLevel * 15,
-        },
+        { startX: lastX + platW/2 - 14, range: platW/2 - 20, dir: Math.random() < 0.5 ? 1 : -1, speed: 70 + currentLevel * 15 }
       ]);
     }
     
-    lastX += platWidth + 25;
+    // Coins (less frequent - work for them!)
+    if (Math.random() < 0.35) {
+      add([ circle(10), area(), pos(lastX + platW/2, currentY - 45), color(255,215,0), "coin" ]);
+    }
+    
+    // Mystery boxes (rare)
+    if (Math.random() < 0.04) {
+      add([ rect(35, 35), area(), pos(lastX + platW/2 - 17, currentY - TILE - 35), color(200,150,50), "mystery", { opened: false } ]);
+    }
+    
+    lastX += platW + 30;
   }
   
   // Finish
-  add([
-    rect(200, TILE),
-    area(),
-    pos(lastX, height() - TILE),
-    color(255, 255, 255),
-    "platform",
-    "finish",
-  ]);
-  
-  worldWidth = lastX + 200;
+  add([ rect(180, TILE), area(), pos(lastX, height() - TILE), color(255,255,255), "platform", "finish" ]);
+  worldWidth = lastX + 180;
 }
 
-let worldWidth = 0;
-
+// ============ SCREENS ============
 function showTitle() {
   destroyAll();
   gameState = "title";
+  add([ rect(width(), height()), color(15,10,25) ]);
+  add([ text("🐕 DOGINAL DASH", { size: 48 }), pos(width()/2, 100), anchor("center"), color(245,200,66) ]);
+  add([ text("Test your skills!", { size: 20 }), pos(width()/2, 170), anchor("center"), color(150,150,150) ]);
   
-  // Background
-  add([ rect(width(), height()), color(20, 15, 35), z(-10) ]);
-  
-  add([ text("🐕 DOGINAL DASH", { size: 42 }), pos(width()/2, 80), anchor("center"), color(245, 200, 66) ]);
-  add([ text("How far can you run?", { size: 18 }), pos(width()/2, 140), anchor("center"), color(150, 150, 150) ]);
-  
-  // Start button
-  const btn = add([ rect(220, 55), pos(width()/2, 250), anchor("center"), color(245, 200, 66), area(), "startbtn" ]);
-  add([ text("START", { size: 18 }), pos(width()/2, 250), anchor("center"), color(0, 0, 0) ]);
-  
-  // High score
-  add([ text(`🏆 HIGH SCORE: ${highScore}`, { size: 14 }), pos(width()/2, 330), anchor("center"), color(255, 215, 0) ]);
+  const btn = add([ rect(240, 60), pos(width()/2, 280), anchor("center"), color(245,200,66), area(), "startbtn" ]);
+  add([ text("START", { size: 20 }), pos(width()/2, 280), anchor("center"), color(0,0,0) ]);
+  add([ text(`🏆 HIGH SCORE: ${highScore}`, { size: 16 }), pos(width()/2, 380), anchor("center"), color(255,215,0) ]);
   
   onClick("startbtn", () => startGame());
 }
@@ -286,27 +218,19 @@ function showTitle() {
 function showGameOver() {
   gameState = "gameover";
   const isNew = score > highScore;
-  if (isNew) {
-    highScore = score;
-    localStorage.setItem('doginalHighScore', highScore);
-  }
+  if (isNew) { highScore = score; localStorage.setItem('doginalHighScore', highScore); }
   
-  add([ rect(width(), height()), color(0, 0, 0), opacity(0.85) ]);
-  add([ text("GAME OVER", { size: 36 }), pos(width()/2, 100), anchor("center"), color(255, 100, 100) ]);
+  add([ rect(width(), height()), color(0,0,0), opacity(0.9) ]);
+  add([ text("GAME OVER", { size: 42 }), pos(width()/2, 120), anchor("center"), color(255,80,80) ]);
+  if (isNew) add([ text("🏆 NEW HIGH SCORE!", { size: 20 }), pos(width()/2, 190), anchor("center"), color(255,215,0) ]);
+  add([ text(`Score: ${score}`, { size: 20 }), pos(width()/2, 250), anchor("center") ]);
+  add([ text(`Time: ${Math.floor(gameTime/60)}:${Math.floor(gameTime%60).toString().padStart(2,'0')}`, { size: 16 }), pos(width()/2, 300), anchor("center"), color(150,150,150) ]);
+  add([ text(`Bones: ${bones}`, { size: 16 }), pos(width()/2, 340), anchor("center"), color(150,150,150) ]);
   
-  if (isNew) {
-    add([ text("🏆 NEW HIGH SCORE!", { size: 18 }), pos(width()/2, 160), anchor("center"), color(255, 215, 0) ]);
-  }
-  
-  add([ text(`Score: ${score}`, { size: 18 }), pos(width()/2, 210), anchor("center") ]);
-  add([ text(`Time: ${Math.floor(gameTime/60)}:${Math.floor(gameTime%60).toString().padStart(2,'0')}`, { size: 14 }), pos(width()/2, 250), anchor("center"), color(150,150,150) ]);
-  add([ text(`Bones: ${bones}`, { size: 14 }), pos(width()/2, 280), anchor("center"), color(150,150,150) ]);
-  
-  const retryBtn = add([ rect(150, 50), pos(width()/2 - 80, 350), color(245,200,66), area(), "retrybtn" ]);
-  add([ text("RETRY", { size: 14 }), pos(width()/2 - 80, 350), anchor("center"), color(0,0,0) ]);
-  
-  const menuBtn = add([ rect(150, 50), pos(width()/2 + 80, 350), color(80,80,80), area(), "menubtn" ]);
-  add([ text("MENU", { size: 14 }), pos(width()/2 + 80, 350), anchor("center"), color(255,255,255) ]);
+  const retryBtn = add([ rect(160, 55), pos(width()/2 - 90, 420), color(245,200,66), area(), "retrybtn" ]);
+  add([ text("RETRY", { size: 16 }), pos(width()/2 - 90, 420), anchor("center"), color(0,0,0) ]);
+  const menuBtn = add([ rect(160, 55), pos(width()/2 + 90, 420), color(60,60,80), area(), "menubtn" ]);
+  add([ text("MENU", { size: 16 }), pos(width()/2 + 90, 420), anchor("center"), color(255,255,255) ]);
   
   onClick("retrybtn", () => startGame());
   onClick("menubtn", () => showTitle());
@@ -315,72 +239,48 @@ function showGameOver() {
 function showLevelComplete() {
   gameState = "levelcomplete";
   levelCompleteShown = true;
-  
-  const bonus = currentLevel * 300;
+  const bonus = currentLevel * 400;
   score += bonus;
   
-  add([ rect(width(), height()), color(0,0,0), opacity(0.85) ]);
-  add([ text("LEVEL COMPLETE!", { size: 32 }), pos(width()/2, 100), anchor("center"), color(100,255,100) ]);
-  add([ text(`Level ${currentLevel}`, { size: 16 }), pos(width()/2, 160), anchor("center"), color(150,150,150) ]);
-  add([ text(`+${bonus} BONUS`, { size: 22 }), pos(width()/2, 210), anchor("center"), color(255,215,0) ]);
-  add([ text(`Total: ${score}`, { size: 16 }), pos(width()/2, 260), anchor("center") ]);
+  add([ rect(width(), height()), color(0,0,0), opacity(0.9) ]);
+  add([ text("LEVEL COMPLETE!", { size: 36 }), pos(width()/2, 120), anchor("center"), color(100,255,100) ]);
+  add([ text(`Level ${currentLevel}`, { size: 18 }), pos(width()/2, 190), anchor("center"), color(150,150,150) ]);
+  add([ text(`+${bonus} BONUS`, { size: 26 }), pos(width()/2, 250), anchor("center"), color(255,215,0) ]);
+  add([ text(`Total: ${score}`, { size: 18 }), pos(width()/2, 310), anchor("center") ]);
   
-  const contBtn = add([ rect(200, 50), pos(width()/2, 350), color(245,200,66), area(), "contbtn" ]);
-  add([ text("CONTINUE →", { size: 14 }), pos(width()/2, 350), anchor("center"), color(0,0,0) ]);
+  const contBtn = add([ rect(220, 55), pos(width()/2, 420), color(245,200,66), area(), "contbtn" ]);
+  add([ text("CONTINUE →", { size: 16 }), pos(width()/2, 420), anchor("center"), color(0,0,0) ]);
   
-  onClick("contbtn", () => {
-    currentLevel++;
-    gameState = "playing";
-    generateLevel();
-    spawnPlayer();
-    levelCompleteShown = false;
-  });
+  onClick("contbtn", () => { currentLevel++; gameState = "playing"; generateLevel(); spawnPlayer(); levelCompleteShown = false; });
 }
 
 function startGame() {
   gameState = "playing";
-  score = 0;
-  bones = 0;
-  lives = 3;
-  gameTime = 0;
-  combo = 0;
-  currentLevel = 1;
-  levelCompleteShown = false;
-  hasJetpack = false;
-  hasMagnet = false;
-  jetpackActive = false;
-  magnetActive = false;
-  jetpackFuel = 0;
-  powerupTimer = 0;
+  score = 0; bones = 0; lives = 3; gameTime = 0; combo = 0;
+  currentLevel = 1; levelCompleteShown = false;
+  hasJetpack = false; hasMagnet = false; jetpackActive = false; magnetActive = false; jetpackFuel = 0;
   
-  const themeKeys = Object.keys(themes);
-  currentTheme = themeKeys[Math.floor(Math.random() * themeKeys.length)];
+  const keys = Object.keys(themes);
+  currentTheme = keys[Math.floor(Math.random() * keys.length)];
   
   generateLevel();
   spawnPlayer();
   camPos(width()/2, height()/2);
-  
-  updatePowerupUI();
+  updatePowerups();
 }
 
-// Power-up UI
-function updatePowerupUI() {
-  const jetpackSlot = document.getElementById('slot-jetpack');
-  const magnetSlot = document.getElementById('slot-magnet');
-  
-  jetpackSlot.className = 'powerup-slot' + (hasJetpack ? ' active' : '');
-  magnetSlot.className = 'powerup-slot' + (hasMagnet ? ' active' : '');
-  
-  jetpackSlot.style.display = hasJetpack ? 'flex' : 'none';
-  magnetSlot.style.display = hasMagnet ? 'flex' : 'none';
+function updatePowerups() {
+  const jp = document.getElementById('pup-jetpack');
+  const mg = document.getElementById('pup-magnet');
+  jp.className = 'pup' + (hasJetpack ? ' active' : '');
+  mg.className = 'pup' + (hasMagnet ? ' active' : '');
+  jp.style.display = hasJetpack ? 'flex' : 'none';
+  mg.style.display = hasMagnet ? 'flex' : 'none';
 }
 
-// Mobile controls
-const downKeys = new Set();
-function setKey(k, v) {
-  if (v) downKeys.add(k);
-  else downKeys.delete(k);
-}
+// ============ CONTROLS ============
+const keysDown = new Set();
+const setKey = (k, v) => v ? keysDown.add(k) : keysDown.delete(k);
 
 ['left','right','space','up','w','a','d'].forEach(k => {
   document.getElementById('btn-left')?.addEventListener('touchstart', e => { e.preventDefault(); setKey('left', true); });
@@ -391,28 +291,27 @@ function setKey(k, v) {
   document.getElementById('btn-a')?.addEventListener('touchend', e => { e.preventDefault(); setKey('space', false); });
 });
 
-// Power-up tap handlers
-document.getElementById('slot-jetpack')?.addEventListener('click', () => {
+document.getElementById('pup-jetpack')?.addEventListener('click', () => {
   if (hasJetpack && !jetpackActive && gameState === 'playing') {
     jetpackActive = true;
-    jetpackFuel = 5;
+    jetpackFuel = 4;
   }
 });
 
-document.getElementById('slot-magnet')?.addEventListener('click', () => {
+document.getElementById('pup-magnet')?.addEventListener('click', () => {
   if (hasMagnet && !magnetActive && gameState === 'playing') {
     magnetActive = true;
     powerupTimer = 8;
   }
 });
 
-// Main loop
+// ============ GAME LOOP ============
 onUpdate(() => {
   if (gameState !== "playing") return;
   
   gameTime += dt();
   
-  // Level complete check
+  // Level complete every 45s
   if (gameTime % LEVEL_DURATION < 0.1 && !levelCompleteShown && currentLevel > 1) {
     showLevelComplete();
     return;
@@ -420,232 +319,171 @@ onUpdate(() => {
   
   if (!player) return;
   
-  // Invincibility
   if (player.invincible > 0) player.invincible -= dt();
   
-  // Jetpack fuel
+  // Powerup timers
   if (jetpackActive) {
     jetpackFuel -= dt();
     if (jetpackFuel <= 0) jetpackActive = false;
   }
-  
-  // Magnet/powerup timer
   if (magnetActive) {
     powerupTimer -= dt();
     if (powerupTimer <= 0) magnetActive = false;
   }
   
   // Movement
-  let moveSpeed = player.speed;
-  let jumpForce = player.jumpForce;
-  let gravity = 1800;
-  
-  if (jetpackActive) {
-    if (isKeyDown("space") || downKeys.has("space")) {
-      player.vy = -400;
-    }
-    gravity = 400;
-  }
-  
-  if (isKeyDown("left") || isKeyDown("a") || downKeys.has("left")) {
-    player.move(-moveSpeed, 0);
-    player.flipX = true;
-  }
-  if (isKeyDown("right") || isKeyDown("d") || downKeys.has("right")) {
-    player.move(moveSpeed, 0);
-    player.flipX = false;
-  }
+  let spd = player.speed, jump = player.jumpForce, grav = 2000;
+  if (jetpackActive && keysDown.has("space")) { player.vy = -450; grav = 500; }
+  if (keysDown.has("left") || keysDown.has("a")) { player.move(-spd, 0); player.flipX = true; }
+  if (keysDown.has("right") || keysDown.has("d")) { player.move(spd, 0); player.flipX = false; }
   
   // Jump
-  if ((isKeyPressed("space") || isKeyPressed("up") || isKeyPressed("w") || downKeys.has("space")) && player.jumpsLeft > 0) {
-    player.jump(jumpForce);
+  if ((isKeyPressed("space") || keysDown.has("space")) && player.jumpsLeft > 0) {
+    player.jump(jump);
     player.jumpsLeft--;
-    if (downKeys.has("space")) downKeys.delete("space");
+    keysDown.delete("space");
   }
-  
   if (player.isGrounded()) player.jumpsLeft = 2;
   
   // Fall death
-  if (player.pos.y > height() + 100) {
+  if (player.pos.y > height() + 150) {
     lives--;
-    if (lives <= 0) {
-      showGameOver();
-    } else {
-      player.pos = vec2(80, 300);
-      player.invincible = 3;
-    }
+    if (lives <= 0) showGameOver();
+    else { player.pos = vec2(60, 400); player.invincible = 3; }
   }
   
   // Camera
   camPos(Math.max(width()/2, player.pos.x), height()/2);
   
-  // Combo decay
-  if (comboTimer > 0) {
-    comboTimer -= dt();
-    if (comboTimer <= 0) combo = 0;
-  }
+  // Combo
+  if (comboTimer > 0) { comboTimer -= dt(); if (comboTimer <= 0) combo = 0; }
   
-  // Score for distance
-  score += Math.floor(dt() * 5);
+  // Score
+  score += Math.floor(dt() * 3);
   
-  // Enemies
-  get("enemy").forEach(e => {
-    e.move(e.direction * e.speed, 0);
-    const pLeft = e.pos.x;
-    const pRight = e.pos.x + 24;
-    if (pLeft < e.startX - e.range || pRight > e.startX + e.range) {
-      e.direction *= -1;
+  // ============ PLATFORMS ============
+  get("platform").forEach(p => {
+    // Moving platforms
+    if (p.isMoving) {
+      if (p.moveAxis === "x") {
+        p.pos.x += p.moveSpeed * dt() * p.moveDir;
+        if (p.pos.x > p.origX + p.moveRange || p.pos.x < p.origX - p.moveRange) p.moveDir *= -1;
+      } else {
+        p.pos.y += p.moveSpeed * dt() * p.moveDir;
+        if (p.pos.y > p.origY + p.moveRange || p.pos.y < p.origY - p.moveRange) p.moveDir *= -1;
+      }
     }
+  });
+  
+  // ============ ENEMIES ============
+  get("enemy").forEach(e => {
+    e.move(e.dir * e.speed, 0);
+    if (e.pos.x < e.startX - e.range || e.pos.x > e.startX + e.range) e.dir *= -1;
     
     if (player.isColliding(e) && player.invincible <= 0) {
       if (player.vy > 0 && player.pos.y < e.pos.y - 5) {
         destroy(e);
-        player.jump(jumpForce * 0.7);
-        combo++;
-        comboTimer = 2;
+        player.jump(jump * 0.65);
+        combo++; comboTimer = 2;
         score += 100 * Math.min(combo, 10);
       } else {
         lives--;
         if (lives <= 0) showGameOver();
-        else { player.invincible = 3; player.pos = vec2(80, 300); }
+        else { player.invincible = 3; player.pos = vec2(60, 400); }
       }
     }
   });
   
-  // Coins
+  // ============ COINS ============
   get("coin").forEach(c => {
-    // Magnet effect
+    // Magnet pull
     if (magnetActive) {
       const dx = player.pos.x - c.pos.x;
       const dy = player.pos.y - c.pos.y;
       const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < 300) {
-        c.pos.x += (dx / dist) * 300 * dt();
-        c.pos.y += (dy / dist) * 300 * dt();
+      if (dist < 350) {
+        c.pos.x += (dx/dist) * 400 * dt();
+        c.pos.y += (dy/dist) * 400 * dt();
       }
     }
-    
-    if (!c.collected && player.isColliding(c)) {
-      c.collected = true;
+    if (player.isColliding(c)) {
       destroy(c);
-      bones++;
-      combo++;
-      comboTimer = 2;
+      bones++; combo++; comboTimer = 2;
       score += 50 * Math.min(combo, 10);
     }
   });
   
-  // Mystery boxes
+  // ============ MYSTERY BOXES ============
   get("mystery").forEach(m => {
     if (!m.opened && player.isColliding(m)) {
       m.opened = true;
-      m.height = 10;
-      const rand = Math.random();
-      if (rand < 0.4) {
-        hasJetpack = true;
-        updatePowerupUI();
-      } else if (rand < 0.7) {
-        hasMagnet = true;
-        updatePowerupUI();
-      } else {
-        score += 200;
-        bones++;
-      }
+      m.height = 12;
+      const r = Math.random();
+      if (r < 0.35) { hasJetpack = true; updatePowerups(); }
+      else if (r < 0.6) { hasMagnet = true; updatePowerups(); }
+      else { score += 150; bones++; }
     }
   });
 });
 
-// Drawing
+// ============ RENDER ============
 onDraw(() => {
   if (gameState === "title") return;
   
-  // Background
   const theme = themes[currentTheme];
-  drawRect({
-    pos: camPos().sub(width()/2, height()/2),
-    width: width(),
-    height: height(),
-    color: theme.sky,
-  });
+  drawRect({ pos: camPos().sub(width()/2, height()/2), width: width(), height: height(), color: theme.sky });
   
-  // Draw platforms
-  get("platform").forEach(p => {
-    if (p.is("finish")) {
-      // Checkerboard
-      for (let r = 0; r < p.height/12; r++) {
-        for (let c = 0; c < p.width/12; c++) {
-          drawRect({
-            pos: p.pos.add(c*12, r*12),
-            width: 12,
-            height: 12,
-            color: (r+c)%2 === 0 ? [0,0,0] : [255,255,255],
-          });
-        }
+  // Finish line
+  get("finish").forEach(f => {
+    for (let r = 0; r < f.height/12; r++) {
+      for (let c = 0; c < f.width/12; c++) {
+        drawRect({ pos: f.pos.add(c*12, r*12), width: 12, height: 12, color: (r+c)%2===0 ? [0,0,0] : [255,255,255] });
       }
     }
   });
   
-  // Draw player (custom)
+  // Player
   if (player && player.invincible <= 0) {
-    // Jetpack flame
     if (jetpackActive) {
-      drawCircle({
-        pos: player.pos.add(24, 40),
-        radius: 8 + Math.random() * 6,
-        color: [255, 150, 0],
-      });
+      drawCircle({ pos: player.pos.add(24, 44), radius: 10 + Math.random() * 8, color: [255,120,0] });
     }
-    
-    if (playerImage) {
-      drawTexture(playerImage, {
-        pos: player.pos,
-        width: 56,  // 60% bigger
-        height: 56,
-        flipX: player.flipX,
-      });
+    if (playerImg) {
+      drawTexture(playerImg, { pos: player.pos, width: 60, height: 60, flipX: player.flipX });
     } else {
-      drawDog({ pos: player.pos, width: 48, height: 48 });
+      drawDog(player.pos.x, player.pos.y, 48, 48, player.flipX);
     }
   }
   
-  // Magnet effect visual
+  // Magnet ring
   if (magnetActive) {
-    drawCircle({
-      pos: player.pos.add(24, 24),
-      radius: 120,
-      color: [100, 200, 255],
-      opacity: 0.15,
-    });
+    drawCircle({ pos: player.pos.add(24, 24), radius: 150, color: [100,200,255], opacity: 0.1 });
   }
   
-  // HUD
-  drawText({ text: `⭐ ${score}`, pos: vec2(20, 20), size: 18 });
-  drawText({ text: `🦴 ${bones}`, pos: vec2(20, 48), size: 18 });
-  drawText({ text: `LV ${currentLevel}`, pos: vec2(20, 76), size: 14, color: [150,150,150] });
-  drawText({ text: getDifficulty(currentLevel).name, pos: vec2(80, 76), size: 10, color: [120,120,120] });
+  // ============ HUD ============
+  drawText({ text: `⭐ ${score}`, pos: vec2(20, 20), size: 20 });
+  drawText({ text: `🦴 ${bones}`, pos: vec2(20, 50), size: 20 });
+  drawText({ text: `LV ${currentLevel}`, pos: vec2(20, 80), size: 14, color: [120,120,120] });
+  drawText({ text: getDifficulty(currentLevel).name, pos: vec2(90, 80), size: 10, color: [100,100,100] });
   
-  const mins = Math.floor(gameTime / 60);
-  const secs = Math.floor(gameTime % 60);
-  drawText({ text: `⏱ ${mins}:${secs.toString().padStart(2,'0')}`, pos: vec2(width() - 120, 20), size: 18 });
+  const mins = Math.floor(gameTime/60), secs = Math.floor(gameTime%60);
+  drawText({ text: `⏱ ${mins}:${secs.toString().padStart(2,'0')}`, pos: vec2(width()-130, 20), size: 20 });
   
   let livesStr = "";
   for (let i = 0; i < 3; i++) livesStr += i < lives ? "🐾" : "💀";
-  drawText({ text: livesStr, pos: vec2(width() - 100, 48), size: 18 });
+  drawText({ text: livesStr, pos: vec2(width()-110, 50), size: 20 });
   
-  if (combo > 1) {
-    drawText({ text: `🔥 x${combo}`, pos: vec2(20, 105), size: 20, color: [255,150,0] });
-  }
+  if (combo > 1) drawText({ text: `🔥 x${combo}`, pos: vec2(20, 115), size: 22, color: [255,150,0] });
   
-  // Jetpack fuel bar
+  // Jetpack bar
   if (jetpackActive) {
-    drawRect({ pos: vec2(width()/2 - 50, 25), width: 100, height: 8, color: [50,50,50] });
-    drawRect({ pos: vec2(width()/2 - 50, 25), width: 100 * (jetpackFuel/5), height: 8, color: [255,150,0] });
+    drawRect({ pos: vec2(width()/2 - 60, 20), width: 120, height: 10, color: [40,40,40] });
+    drawRect({ pos: vec2(width()/2 - 60, 20), width: 120 * (jetpackFuel/4), height: 10, color: [255,150,0] });
   }
   
-  // Magnet timer
+  // Magnet bar
   if (magnetActive) {
-    drawRect({ pos: vec2(width()/2 - 50, 40), width: 100, height: 6, color: [50,50,50] });
-    drawRect({ pos: vec2(width()/2 - 50, 40), width: 100 * (powerupTimer/8), height: 6, color: [100,200,255] });
+    drawRect({ pos: vec2(width()/2 - 60, 38), width: 120, height: 8, color: [40,40,40] });
+    drawRect({ pos: vec2(width()/2 - 60, 38), width: 120 * (powerupTimer/8), height: 8, color: [100,200,255] });
   }
 });
 
