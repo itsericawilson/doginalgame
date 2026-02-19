@@ -74,17 +74,17 @@ const themes = {
 };
 let currentTheme = "forest";
 
-// ============ DIFFICULTY - MUCH HARDER ============
+// ============ DIFFICULTY - BRUTALLY HARD ============
 function getDifficulty(level) {
-  // Big gaps, narrow platforms, lots of enemies
-  if (level === 1) return { name: "WARMUP", gapMin: 4, gapMax: 6, platW: 3, enemy: 0.1 };
-  if (level === 2) return { name: "GETTING REAL", gapMin: 5, gapMax: 8, platW: 2.5, enemy: 0.2 };
-  if (level === 3) return { name: "SERIOUS", gapMin: 6, gapMax: 10, platW: 2, enemy: 0.25 };
-  if (level === 4) return { name: "COMMITTED", gapMin: 7, gapMax: 11, platW: 1.8, enemy: 0.3 };
-  if (level === 5) return { name: "STRESSED", gapMin: 8, gapMax: 12, platW: 1.5, enemy: 0.35 };
-  if (level === 6) return { name: "HARD", gapMin: 9, gapMax: 14, platW: 1.3, enemy: 0.4 };
-  if (level === 7) return { name: "EXTREME", gapMin: 10, gapMax: 16, platW: 1, enemy: 0.45 };
-  return { name: "BRUTAL", gapMin: 11, gapMax: 18, platW: 0.8, enemy: 0.5 };
+  // Massive gaps - you WILL fall
+  if (level === 1) return { name: "WARMUP", gapMin: 6, gapMax: 9, platW: 2.5, enemy: 0.1 };
+  if (level === 2) return { name: "GETTING REAL", gapMin: 8, gapMax: 12, platW: 2.2, enemy: 0.2 };
+  if (level === 3) return { name: "SERIOUS", gapMin: 10, gapMax: 15, platW: 2, enemy: 0.25 };
+  if (level === 4) return { name: "COMMITTED", gapMin: 12, gapMax: 17, platW: 1.8, enemy: 0.3 };
+  if (level === 5) return { name: "STRESSED", gapMin: 14, gapMax: 20, platW: 1.5, enemy: 0.35 };
+  if (level === 6) return { name: "HARD", gapMin: 16, gapMax: 23, platW: 1.3, enemy: 0.4 };
+  if (level === 7) return { name: "EXTREME", gapMin: 18, gapMax: 26, platW: 1, enemy: 0.45 };
+  return { name: "BRUTAL", gapMin: 20, gapMax: 30, platW: 0.8, enemy: 0.5 };
 }
 
 // ============ DRAW PIXEL DOG ============
@@ -112,7 +112,7 @@ function spawnPlayer() {
     body(),
     pos(60, 450),
     "player",
-    { speed: 300, jumpForce: 580, jumpsLeft: 2, invincible: 0 }
+    { speed: 320, jumpForce: 520, jumpsLeft: 2, invincible: 0 }  // Slightly faster but less forgiving jump
   ]);
 }
 
@@ -192,7 +192,7 @@ function generateLevel() {
       add([ rect(35, 35), area(), pos(lastX + platW/2 - 17, currentY - TILE - 35), color(200,150,50), "mystery", { opened: false } ]);
     }
     
-    lastX += platW + 30;
+    lastX += platW + 15;  // Tight spacing between platforms
   }
   
   // Finish
